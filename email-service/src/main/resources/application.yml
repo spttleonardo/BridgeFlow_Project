@@ -9,9 +9,9 @@ spring:
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASS:guest}
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:emails}
-    username: ${POSTGRES_USER:postgres}
-    password: ${POSTGRES_PASSWORD:postgres}
+    url: jdbc:postgresql://${POSTGRES_HOST:db}:${POSTGRES_PORT:5432}/${POSTGRES_DB:bridgeflow}
+    username: ${POSTGRES_USER:bridgeflow}
+    password: ${POSTGRES_PASSWORD:bridgeflow123}
   jpa:
     hibernate:
       ddl-auto: update

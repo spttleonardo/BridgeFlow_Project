@@ -21,17 +21,28 @@ public class DataInitializer implements CommandLineRunner {
 
     private void criarSecretariasIniciais() {
         Secretaria[] secretarias = {
-            new Secretaria(null, "Administration Department", "ADMIN", "Responsible for administrative management", true, null, null),
-            new Secretaria(null, "Education Department", "EDU", "Responsible for education services", true, null, null),
-            new Secretaria(null, "Health Department", "HEALTH", "Responsible for public health", true, null, null),
-            new Secretaria(null, "Public Works Department", "WORKS", "Responsible for public infrastructure", true, null, null),
-            new Secretaria(null, "Finance Department", "FINANCE", "Responsible for financial management", true, null, null),
-            new Secretaria(null, "Environment Department", "ENV", "Responsible for environmental protection", true, null, null),
-            new Secretaria(null, "Social Development Department", "SOCIAL", "Responsible for social services", true, null, null)
+            buildSecretaria("Administration Department", "ADMIN", "Responsible for administrative management"),
+            buildSecretaria("Education Department", "EDU", "Responsible for education services"),
+            buildSecretaria("Health Department", "HEALTH", "Responsible for public health"),
+            buildSecretaria("Public Works Department", "WORKS", "Responsible for public infrastructure"),
+            buildSecretaria("Finance Department", "FINANCE", "Responsible for financial management"),
+            buildSecretaria("Environment Department", "ENV", "Responsible for environmental protection"),
+            buildSecretaria("Social Development Department", "SOCIAL", "Responsible for social services")
         };
 
         for (Secretaria secretaria : secretarias) {
             secretariaRepository.save(secretaria);
         }
+    }
+
+    private Secretaria buildSecretaria(String nome, String sigla, String descricao) {
+        Secretaria secretaria = new Secretaria();
+        secretaria.setNome(nome);
+        secretaria.setSigla(sigla);
+        secretaria.setDescricao(descricao);
+        secretaria.setAtivo(true);
+        secretaria.setDataCriacao(java.time.LocalDateTime.now());
+        secretaria.setDataAtualizacao(null);
+        return secretaria;
     }
 }
