@@ -37,7 +37,7 @@ public class Usuario {
     private String cargo;
 
     @Column(nullable = false)
-    private Boolean ativo = true;
+    private Boolean ativo = false;
 
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao = LocalDateTime.now();

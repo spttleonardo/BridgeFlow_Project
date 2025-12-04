@@ -10,12 +10,14 @@ import com.bridgeflow.internalcomms.repository.ComentarioRepository;
 import com.bridgeflow.internalcomms.repository.DecisaoRepository;
 import com.bridgeflow.internalcomms.repository.NotificacaoRepository;
 import com.bridgeflow.internalcomms.repository.UsuarioRepository;
+import com.bridgeflow.internalcomms.service.MqService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +28,7 @@ public class DecisaoService {
     private final ComentarioRepository comentarioRepository;
     private final UsuarioRepository usuarioRepository;
     private final NotificacaoRepository notificacaoRepository;
+    private final MqService mqService;
 
     @Transactional
     public DecisaoDTO criarDecisao(DecisaoDTO.Create request, String emailUsuario) {
@@ -46,6 +49,17 @@ public class DecisaoService {
 
         // Criar notificação para o responsável
         criarNotificacaoDecisao(decisao, "Nova decisão atribuída: " + decisao.getTitulo());
+
+        // Enviar notificação por e-mail
+        if (request.getEmailNotificacao() != null && !request.getEmailNotificacao().isBlank()) {
+            mqService.notificar(Map.of(
+                    "type", "decisao.criada",
+                    "emailNotificacao", request.getEmailNotificacao(),
+                    "decisaoTitulo", decisao.getTitulo(),
+                    "responsavelNome", decisao.getResponsavel().getNome(),
+                    "prazo", decisao.getPrazo() != null ? decisao.getPrazo().toString() : "N/A"
+            ));
+        }
 
         return convertToDTO(decisao);
     }

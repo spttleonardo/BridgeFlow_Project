@@ -37,11 +37,13 @@ MVP of internal communication platform for government organizations.
 ### Execução
 ```bash
 # Na raiz do projeto
-docker-compose up --build
+docker compose up -d --build
 ```
 
+Healthcheck: o backend expõe `GET /actuator/health` e é monitorado pelo compose.
+
 ### Acesso
-- **Frontend**: http://localhost:3000
+- **Frontend**: http://localhost:3000 (se estiver rodando o Flutter web server)
 - **Backend API**: http://localhost:8080
 - **Banco PostgreSQL**: localhost:5432
 
@@ -63,7 +65,7 @@ docker-compose up --build
 - `GET /decisoes/{id}/comentarios` - Listar comentários
 
 ### Dashboard
-- `GET /dashboard/stats` - Estatísticas
+- `GET /dashboard` - Estatísticas
 
 ## Initial Data
 

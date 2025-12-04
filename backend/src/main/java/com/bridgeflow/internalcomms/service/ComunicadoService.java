@@ -9,12 +9,14 @@ import com.bridgeflow.internalcomms.repository.ComunicadoRepository;
 import com.bridgeflow.internalcomms.repository.NotificacaoRepository;
 import com.bridgeflow.internalcomms.repository.SecretariaRepository;
 import com.bridgeflow.internalcomms.repository.UsuarioRepository;
+import com.bridgeflow.internalcomms.service.MqService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +27,7 @@ public class ComunicadoService {
     private final UsuarioRepository usuarioRepository;
     private final SecretariaRepository secretariaRepository;
     private final NotificacaoRepository notificacaoRepository;
+    private final MqService mqService;
 
     @Transactional
     public ComunicadoDTO criarComunicado(ComunicadoDTO.Create request, String emailUsuario) {
@@ -51,6 +54,17 @@ public class ComunicadoService {
         // Criar notificações para usuários da secretaria destino
         if (comunicado.getSecretariaDestino() != null) {
             criarNotificacoesComunicado(comunicado);
+        }
+
+        // Enviar notificação por e-mail
+        if (request.getEmailNotificacao() != null && !request.getEmailNotificacao().isBlank()) {
+            mqService.notificar(Map.of(
+                    "type", "comunicado.criado",
+                    "emailNotificacao", request.getEmailNotificacao(),
+                    "comunicadoTitulo", comunicado.getTitulo(),
+                    "remetente", comunicado.getSecretariaOrigem().getNome(),
+                    "destinatario", comunicado.getSecretariaDestino() != null ? comunicado.getSecretariaDestino().getNome() : "N/A"
+            ));
         }
 
         return convertToDTO(comunicado);

@@ -59,7 +59,7 @@ public class DashboardService {
 
         // Notificações não lidas (simplificado para MVP)
         dashboard.setNotificacoesNaoLidas((int) notificacaoRepository.findAll().stream()
-            .filter(n -> !n.isLida())
+            .filter(n -> !Boolean.TRUE.equals(n.getLida()))
             .count());
 
         return dashboard;

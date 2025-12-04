@@ -1,49 +1,53 @@
-version: '3.8'
-
+version: "3.9"
 services:
-  postgres:
-    image: postgres:15
-    container_name: bridgeflow-postgres
-    environment:
-      POSTGRES_DB: bridgeflow_db
-      POSTGRES_USER: bridgeflow_user
-      POSTGRES_PASSWORD: bridgeflow_pass
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - comunicacao-network
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: bridgeflow-backend:latest
     container_name: bridgeflow-backend
     ports:
       - "8080:8080"
-    depends_on:
-      - postgres
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    networks:
-      - comunicacao-network
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: bridgeflow-frontend
-    ports:
-      - "3000:80"
+      SPRING_PROFILES_ACTIVE: default
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-32chars}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      # Uncomment if using Postgres
+      # SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      # SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      # SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      # Uncomment if using RabbitMQ
+      # SPRING_RABBITMQ_HOST: rabbitmq
+      # SPRING_RABBITMQ_PORT: 5672
+      # SPRING_RABBITMQ_USERNAME: ${SPRING_RABBITMQ_USERNAME}
+      # SPRING_RABBITMQ_PASSWORD: ${SPRING_RABBITMQ_PASSWORD}
     depends_on:
-      - backend
+      - email-service
     networks:
-      - comunicacao-network
+      - bridgeflow-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-volumes:
-  postgres_data:
+  email-service:
+    build:
+      context: ./email-service
+      dockerfile: Dockerfile
+    image: bridgeflow-email-service:latest
+    container_name: bridgeflow-email-service
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+      # RabbitMQ defaults (adjust as needed)
+      SPRING_RABBITMQ_HOST: ${SPRING_RABBITMQ_HOST:-localhost}
+      SPRING_RABBITMQ_PORT: ${SPRING_RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${SPRING_RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${SPRING_RABBITMQ_PASSWORD:-guest}
+    networks:
+      - bridgeflow-net
 
 networks:
-  comunicacao-network:
+  bridgeflow-net:
     driver: bridge

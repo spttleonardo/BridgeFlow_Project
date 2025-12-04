@@ -26,6 +26,7 @@ public class DecisaoDTO {
         private String descricao;
         private Long responsavelId;
         private LocalDateTime prazo;
+        private String emailNotificacao;
     }
 
     @Data

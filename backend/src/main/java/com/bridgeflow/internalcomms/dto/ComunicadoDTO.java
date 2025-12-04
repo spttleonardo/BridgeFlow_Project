@@ -28,6 +28,7 @@ public class ComunicadoDTO {
         private String conteudo;
         private Comunicado.Prioridade prioridade = Comunicado.Prioridade.MEDIA;
         private Long secretariaDestinoId;
+        private String emailNotificacao;
     }
 
     @Data
