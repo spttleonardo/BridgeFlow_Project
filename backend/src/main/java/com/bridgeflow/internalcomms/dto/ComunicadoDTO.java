@@ -35,11 +35,43 @@ public class ComunicadoDTO {
         private Comunicado.StatusComunicado status;
     }
 
-    @Data
     public static class Filtros {
         private Long secretariaOrigemId;
         private Long secretariaDestinoId;
         private Comunicado.StatusComunicado status;
         private Comunicado.Prioridade prioridade;
+
+        // Getters e Setters
+        public Long getSecretariaOrigemId() {
+            return secretariaOrigemId;
+        }
+
+        public void setSecretariaOrigemId(Long secretariaOrigemId) {
+            this.secretariaOrigemId = secretariaOrigemId;
+        }
+
+        public Long getSecretariaDestinoId() {
+            return secretariaDestinoId;
+        }
+
+        public void setSecretariaDestinoId(Long secretariaDestinoId) {
+            this.secretariaDestinoId = secretariaDestinoId;
+        }
+
+        public Comunicado.StatusComunicado getStatus() {
+            return status;
+        }
+
+        public void setStatus(Comunicado.StatusComunicado status) {
+            this.status = status;
+        }
+
+        public Comunicado.Prioridade getPrioridade() {
+            return prioridade;
+        }
+
+        public void setPrioridade(Comunicado.Prioridade prioridade) {
+            this.prioridade = prioridade;
+        }
     }
 }

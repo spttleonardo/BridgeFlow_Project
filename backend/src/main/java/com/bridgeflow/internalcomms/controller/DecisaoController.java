@@ -31,11 +31,22 @@ public class DecisaoController {
 
     @GetMapping
     public ResponseEntity<List<DecisaoDTO>> listarDecisoes(
-            @RequestParam(required = false) Decisao.StatusDecisao status,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) Long responsavelId) {
 
         DecisaoDTO.Filtros filtros = new DecisaoDTO.Filtros();
-        filtros.setStatus(status);
+
+        // Converter string para enum se necessário
+        Decisao.StatusDecisao statusEnum = null;
+        if (status != null && !status.isEmpty()) {
+            try {
+                statusEnum = Decisao.StatusDecisao.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Status inválido, ignorar
+            }
+        }
+
+        filtros.setStatus(statusEnum);
         filtros.setResponsavelId(responsavelId);
 
         List<DecisaoDTO> decisoes = decisaoService.listarDecisoes(filtros);
