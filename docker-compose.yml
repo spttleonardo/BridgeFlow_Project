@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - comunicacao-network
+      - bridgeflow-network
 
   backend:
     build:
@@ -27,7 +27,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
-      - comunicacao-network
+      - bridgeflow-network
 
   frontend:
     build:
@@ -39,11 +39,11 @@ services:
     depends_on:
       - backend
     networks:
-      - comunicacao-network
+      - bridgeflow-network
 
 volumes:
   postgres_data:
 
 networks:
-  comunicacao-network:
+  bridgeflow-network:
     driver: bridge
