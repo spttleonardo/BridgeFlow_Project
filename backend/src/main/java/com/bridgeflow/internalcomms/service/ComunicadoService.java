@@ -9,10 +9,11 @@ import com.bridgeflow.internalcomms.repository.ComunicadoRepository;
 import com.bridgeflow.internalcomms.repository.NotificacaoRepository;
 import com.bridgeflow.internalcomms.repository.SecretariaRepository;
 import com.bridgeflow.internalcomms.repository.UsuarioRepository;
-import com.bridgeflow.internalcomms.service.MqService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,9 +33,12 @@ public class ComunicadoService {
     @Transactional
     public ComunicadoDTO criarComunicado(ComunicadoDTO.Create request, String emailUsuario) {
         Usuario usuarioCriador = usuarioRepository.findByEmail(emailUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
         Secretaria secretariaOrigem = usuarioCriador.getSecretaria();
+        if (secretariaOrigem == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não possui secretaria associada");
+        }
 
         Comunicado comunicado = new Comunicado();
         comunicado.setTitulo(request.getTitulo());
@@ -45,7 +49,7 @@ public class ComunicadoService {
 
         if (request.getSecretariaDestinoId() != null) {
             Secretaria secretariaDestino = secretariaRepository.findById(request.getSecretariaDestinoId())
-                    .orElseThrow(() -> new RuntimeException("Secretaria destino não encontrada"));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Secretaria destino não encontrada"));
             comunicado.setSecretariaDestino(secretariaDestino);
         }
 
@@ -62,6 +66,8 @@ public class ComunicadoService {
                     "type", "comunicado.criado",
                     "emailNotificacao", request.getEmailNotificacao(),
                     "comunicadoTitulo", comunicado.getTitulo(),
+                    "comunicadoConteudo", comunicado.getConteudo(),
+                    "comunicadoPrioridade", comunicado.getPrioridade().name(),
                     "remetente", comunicado.getSecretariaOrigem().getNome(),
                     "destinatario", comunicado.getSecretariaDestino() != null ? comunicado.getSecretariaDestino().getNome() : "N/A"
             ));
@@ -98,10 +104,10 @@ public class ComunicadoService {
     @Transactional
     public ComunicadoDTO atualizarStatus(Long id, ComunicadoDTO.UpdateStatus request, String emailUsuario) {
         Comunicado comunicado = comunicadoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comunicado não encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunicado não encontrado"));
 
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
         // Verificar se usuário pode atualizar status (deve ser da secretaria destino ou criador)
         boolean podeAtualizar = comunicado.getUsuarioCriador().equals(usuario) ||
@@ -109,7 +115,7 @@ public class ComunicadoService {
                                 comunicado.getSecretariaDestino().equals(usuario.getSecretaria()));
 
         if (!podeAtualizar) {
-            throw new RuntimeException("Usuário não tem permissão para atualizar este comunicado");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Usuário não tem permissão para atualizar este comunicado");
         }
 
         comunicado.setStatus(request.getStatus());

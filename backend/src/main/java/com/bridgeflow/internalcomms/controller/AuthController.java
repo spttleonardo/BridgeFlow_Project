@@ -17,20 +17,45 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        try {
+            authService.register(request);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            if ("Email já cadastrado".equals(e.getMessage())) {
+                return ResponseEntity.status(409).body(e.getMessage());
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @GetMapping("/verify")
-    public ResponseEntity<LoginResponse> verify(@RequestParam String code) {
-        LoginResponse response = authService.verificarEmail(code);
+    public ResponseEntity<LoginResponse> verify(@RequestParam String code,
+                                                @RequestParam(required = false) String email) {
+        LoginResponse response = authService.verificarEmail(code, email);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> authenticate(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = authService.authenticate(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> authenticate(@Valid @RequestBody LoginRequest request) {
+        try {
+            LoginResponse response = authService.authenticate(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("não verificado")) {
+                return ResponseEntity.status(403).body("E-mail não verificado");
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(@RequestBody RegisterRequest request) {
+        try {
+            authService.reenviarEmailVerificacao(request.getEmail());
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

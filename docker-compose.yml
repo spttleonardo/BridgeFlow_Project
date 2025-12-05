@@ -11,13 +11,12 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: default
-      JWT_SECRET: ${JWT_SECRET:-change-this-secret-32chars}
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-to-64-characters-minimum-please-1234567890}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/bridgeflow
       SPRING_DATASOURCE_USERNAME: bridgeflow
       SPRING_DATASOURCE_PASSWORD: bridgeflow123
-      # Uncomment if using RabbitMQ
-      # SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_HOST: rabbitmq
       # SPRING_RABBITMQ_PORT: 5672
       # SPRING_RABBITMQ_USERNAME: guest
       # SPRING_RABBITMQ_PASSWORD: guest
@@ -54,10 +53,23 @@ services:
       SMTP_PORT: 587
       SMTP_USERNAME: ortizpassos@gmail.com
       SMTP_PASSWORD: qygyacyixniadlgg
-      MAIL_FROM: "Costura Agil <ortizpassos@gmail.com>"
+      MAIL_FROM: "Bridge Flow <ortizpassos@gmail.com>"
     depends_on:
       - db
       - rabbitmq
+    networks:
+      - bridgeflow-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: bridgeflow-frontend:latest
+    container_name: bridgeflow-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
     networks:
       - bridgeflow-net
 

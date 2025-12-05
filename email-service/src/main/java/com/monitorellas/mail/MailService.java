@@ -35,14 +35,14 @@ public class MailService {
         } catch (Exception ex) {
             error = ex.getMessage();
         }
-        emailLogRepository.save(EmailLog.builder()
-                .recipient(to)
-                .subject(subject)
-                .body(body)
-                .sentAt(OffsetDateTime.now())
-                .success(success)
-                .error(error)
-                .build());
+        emailLogRepository.save(java.util.Objects.requireNonNull(EmailLog.builder()
+            .recipient(to)
+            .subject(subject)
+            .body(body)
+            .sentAt(OffsetDateTime.now())
+            .success(success)
+            .error(error)
+            .build()));
         if (!success) throw new RuntimeException("Falha ao enviar e-mail: " + error);
     }
 }

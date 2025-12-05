@@ -1,6 +1,9 @@
 package com.bridgeflow.internalcomms.dto;
 
 import com.bridgeflow.internalcomms.entity.Comunicado;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -24,8 +27,12 @@ public class ComunicadoDTO {
 
     @Data
     public static class Create {
+        @NotBlank(message = "Título é obrigatório")
+        @Size(max = 255, message = "Título muito longo")
         private String titulo;
+        @NotBlank(message = "Conteúdo é obrigatório")
         private String conteudo;
+        @NotNull(message = "Prioridade é obrigatória")
         private Comunicado.Prioridade prioridade = Comunicado.Prioridade.MEDIA;
         private Long secretariaDestinoId;
         private String emailNotificacao;

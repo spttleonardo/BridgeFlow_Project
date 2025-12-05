@@ -6,6 +6,7 @@ import com.bridgeflow.internalcomms.dto.RegisterRequest;
 import com.bridgeflow.internalcomms.entity.Secretaria;
 import com.bridgeflow.internalcomms.entity.Usuario;
 import com.bridgeflow.internalcomms.entity.VerificacaoEmail;
+import org.springframework.security.authentication.DisabledException;
 import com.bridgeflow.internalcomms.repository.SecretariaRepository;
 import com.bridgeflow.internalcomms.repository.UsuarioRepository;
 import com.bridgeflow.internalcomms.repository.VerificacaoEmailRepository;
@@ -20,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -41,19 +42,20 @@ public class AuthService {
         }
 
         Secretaria secretaria = secretariaRepository.findById(request.getSecretariaId())
-                .orElseThrow(() -> new RuntimeException("Secretaria não encontrada"));
+            .orElseThrow(() -> new RuntimeException("Secretaria não encontrada"));
 
         Usuario usuario = new Usuario();
-        usuario.setNome(request.getNome());
+        usuario.setNome(request.getName());
         usuario.setEmail(request.getEmail());
-        usuario.setSenha(passwordEncoder.encode(request.getSenha()));
+        usuario.setSenha(passwordEncoder.encode(request.getPassword()));
         usuario.setSecretaria(secretaria);
         usuario.setDepartamento(request.getDepartamento());
         usuario.setCargo(request.getCargo());
+        // TODO: Map roles to Usuario entity if needed
 
         usuarioRepository.save(usuario);
 
-        String codigo = UUID.randomUUID().toString();
+        String codigo = String.format("%06d", new Random().nextInt(999999));
         LocalDateTime dataExpiracao = LocalDateTime.now().plusMinutes(30);
         VerificacaoEmail verificacao = new VerificacaoEmail(codigo, usuario, dataExpiracao);
         verificacaoEmailRepository.save(verificacao);
@@ -67,9 +69,13 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResponse verificarEmail(String codigo) {
+    public LoginResponse verificarEmail(String codigo, String email) {
         VerificacaoEmail verificacao = verificacaoEmailRepository.findByCodigo(codigo)
                 .orElseThrow(() -> new RuntimeException("Código de verificação inválido"));
+
+        if (email != null && !email.equalsIgnoreCase(verificacao.getUsuario().getEmail())) {
+            throw new RuntimeException("Código de verificação inválido");
+        }
 
         if (verificacao.getDataExpiracao().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Código de verificação expirado");
@@ -79,39 +85,61 @@ public class AuthService {
         usuario.setAtivo(true);
         usuarioRepository.save(usuario);
 
+        // Limpa o código usado
         verificacaoEmailRepository.delete(verificacao);
 
-        String jwtToken = jwtService.generateToken(
-            org.springframework.security.core.userdetails.User.builder()
-                .username(usuario.getEmail())
-                .password(usuario.getSenha())
-                .build()
-        );
-
+        String token = jwtService.generateToken(usuario);
         LoginResponse.UsuarioDTO usuarioDTO = new LoginResponse.UsuarioDTO(
             usuario.getId(),
             usuario.getNome(),
             usuario.getEmail(),
-            usuario.getSecretaria().getNome(),
+            usuario.getSecretaria() != null ? usuario.getSecretaria().getNome() : null,
             usuario.getCargo()
         );
 
-        return new LoginResponse(jwtToken, "Bearer", 86400000L, usuarioDTO);
+        return new LoginResponse(token, "Bearer", jwtService.getJwtExpiration(), usuarioDTO);
+    }
+
+    public void reenviarEmailVerificacao(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        if (usuario.isEnabled()) {
+            throw new RuntimeException("Este e-mail já foi verificado.");
+        }
+
+        // Opcional: Invalidar códigos antigos
+        verificacaoEmailRepository.findByUsuario(usuario).ifPresent(verificacaoEmailRepository::delete);
+
+        // Gerar e salvar novo código
+        String codigo = String.format("%06d", new Random().nextInt(999999));
+        VerificacaoEmail novaVerificacao = new VerificacaoEmail();
+        novaVerificacao.setUsuario(usuario);
+        novaVerificacao.setCodigo(codigo);
+        novaVerificacao.setDataExpiracao(LocalDateTime.now().plusMinutes(30));
+        verificacaoEmailRepository.save(novaVerificacao);
+
+        // Enviar para a fila
+        mqService.sendVerificationEmail(usuario.getEmail(), codigo);
     }
 
     public LoginResponse authenticate(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                request.getEmail(),
-                request.getSenha()
-            )
-        );
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    request.getEmail(),
+                    request.getSenha()
+                )
+            );
+        } catch (DisabledException e) {
+            throw new RuntimeException("E-mail não verificado");
+        }
 
         Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
-        if (!usuario.getAtivo()) {
-            throw new RuntimeException("Usuário não está ativo. Verifique seu e-mail.");
+        if (!usuario.isEnabled()) {
+            throw new RuntimeException("E-mail não verificado");
         }
 
         // Build UserDetails from the authenticated usuario to generate JWT
@@ -131,6 +159,6 @@ public class AuthService {
             usuario.getCargo()
         );
 
-        return new LoginResponse(jwtToken, "Bearer", 86400000L, usuarioDTO);
+        return new LoginResponse(jwtToken, "Bearer", jwtService.getJwtExpiration(), usuarioDTO);
     }
 }
