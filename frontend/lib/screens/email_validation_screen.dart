@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import '../theme.dart';
 import '../services/api_service.dart';
+import '../widgets/bridgeflow_scaffold.dart';
 
 class EmailValidationScreen extends StatefulWidget {
   final String email;
   const EmailValidationScreen({super.key, required this.email});
-
   @override
   State<EmailValidationScreen> createState() => _EmailValidationScreenState();
 }
@@ -43,8 +42,7 @@ class _EmailValidationScreenState extends State<EmailValidationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Validar Email'), backgroundColor: bridgeFlowTheme.appBarTheme.backgroundColor),
+    return BridgeFlowScaffold(
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

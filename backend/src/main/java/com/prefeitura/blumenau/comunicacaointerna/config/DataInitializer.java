@@ -21,13 +21,13 @@ public class DataInitializer implements CommandLineRunner {
 
     private void criarSecretariasIniciais() {
         Secretaria[] secretarias = {
-            new Secretaria(null, "Administration Department", "ADMIN", "Responsible for administrative management", true, null, null),
-            new Secretaria(null, "Education Department", "EDU", "Responsible for education services", true, null, null),
-            new Secretaria(null, "Health Department", "HEALTH", "Responsible for public health", true, null, null),
-            new Secretaria(null, "Public Works Department", "WORKS", "Responsible for public infrastructure", true, null, null),
-            new Secretaria(null, "Finance Department", "FINANCE", "Responsible for financial management", true, null, null),
-            new Secretaria(null, "Environment Department", "ENV", "Responsible for environmental protection", true, null, null),
-            new Secretaria(null, "Social Development Department", "SOCIAL", "Responsible for social services", true, null, null)
+            new Secretaria(null, "Secretaria de Administração", "ADMIN", "Responsável pela gestão administrativa", true, null, null),
+            new Secretaria(null, "Secretaria de Educação", "EDU", "Responsável pelos serviços de educação", true, null, null),
+            new Secretaria(null, "Secretaria de Saúde", "HEALTH", "Responsável pela saúde pública", true, null, null),
+            new Secretaria(null, "Secretaria de Obras", "WORKS", "Responsável pela infraestrutura pública", true, null, null),
+            new Secretaria(null, "Secretaria de Finanças", "FINANCE", "Responsável pela gestão financeira", true, null, null),
+            new Secretaria(null, "Secretaria de Meio Ambiente", "ENV", "Responsável pela proteção ambiental", true, null, null),
+            new Secretaria(null, "Secretaria de Desenvolvimento Social", "SOCIAL", "Responsável pelos serviços sociais", true, null, null)
         };
 
         for (Secretaria secretaria : secretarias) {

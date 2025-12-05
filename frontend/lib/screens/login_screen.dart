@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme.dart';
 import '../services/api_service.dart';
 import 'email_validation_screen.dart';
+import '../widgets/bridgeflow_scaffold.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -11,8 +11,7 @@ class LoginScreen extends StatelessWidget {
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Login'), backgroundColor: bridgeFlowTheme.appBarTheme.backgroundColor),
+    return BridgeFlowScaffold(
       body: Center(
         child: SingleChildScrollView(
           child: Padding(

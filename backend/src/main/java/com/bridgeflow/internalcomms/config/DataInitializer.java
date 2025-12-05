@@ -14,20 +14,21 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (secretariaRepository.count() == 0) {
-            criarSecretariasIniciais();
-        }
+        // Recria secretarias iniciais em PT-BR para garantir tradução
+        // (remove as existentes e insere novamente)
+        secretariaRepository.deleteAll();
+        criarSecretariasIniciais();
     }
 
     private void criarSecretariasIniciais() {
         Secretaria[] secretarias = {
-            buildSecretaria("Administration Department", "ADMIN", "Responsible for administrative management"),
-            buildSecretaria("Education Department", "EDU", "Responsible for education services"),
-            buildSecretaria("Health Department", "HEALTH", "Responsible for public health"),
-            buildSecretaria("Public Works Department", "WORKS", "Responsible for public infrastructure"),
-            buildSecretaria("Finance Department", "FINANCE", "Responsible for financial management"),
-            buildSecretaria("Environment Department", "ENV", "Responsible for environmental protection"),
-            buildSecretaria("Social Development Department", "SOCIAL", "Responsible for social services")
+            buildSecretaria("Secretaria de Administração", "ADMIN", "Responsável pela gestão administrativa"),
+            buildSecretaria("Secretaria de Educação", "EDU", "Responsável pelos serviços de educação"),
+            buildSecretaria("Secretaria de Saúde", "HEALTH", "Responsável pela saúde pública"),
+            buildSecretaria("Secretaria de Obras", "WORKS", "Responsável pela infraestrutura pública"),
+            buildSecretaria("Secretaria de Finanças", "FINANCE", "Responsável pela gestão financeira"),
+            buildSecretaria("Secretaria de Meio Ambiente", "ENV", "Responsável pela proteção ambiental"),
+            buildSecretaria("Secretaria de Desenvolvimento Social", "SOCIAL", "Responsável pelos serviços sociais")
         };
 
         for (Secretaria secretaria : secretarias) {

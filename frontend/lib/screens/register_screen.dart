@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme.dart';
 import '../services/api_service.dart';
 import 'email_validation_screen.dart';
+import '../widgets/bridgeflow_scaffold.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -109,11 +109,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Registro'),
-        backgroundColor: bridgeFlowTheme.appBarTheme.backgroundColor,
-      ),
+    return BridgeFlowScaffold(
       body: Center(
         child: SingleChildScrollView(
           child: Padding(

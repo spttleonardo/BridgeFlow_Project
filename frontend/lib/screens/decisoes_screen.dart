@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../widgets/bridgeflow_scaffold.dart';
 
 class DecisoesScreen extends StatefulWidget {
   static const routeName = '/decisoes';
@@ -12,12 +14,23 @@ class DecisoesScreen extends StatefulWidget {
 }
 
 class _DecisoesScreenState extends State<DecisoesScreen> {
+  bool? _logado;
   late Future<List<Map<String, dynamic>>> _decisoesFuture;
 
   @override
   void initState() {
     super.initState();
+    _verificarLogin();
     _decisoesFuture = ApiService.fetchDecisoes();
+  }
+
+  Future<void> _verificarLogin() async {
+    await ApiService.restoreAuthFromStorage();
+    final autenticado = await AuthService.isLoggedIn();
+    if (!mounted) return;
+    setState(() {
+      _logado = autenticado;
+    });
   }
 
   Future<void> _reload() async {
@@ -44,19 +57,22 @@ class _DecisoesScreenState extends State<DecisoesScreen> {
   String _humanizeEnum(dynamic value) {
     if (value is String && value.isNotEmpty) {
       final lower = value.toLowerCase().replaceAll('_', ' ');
-      return lower.split(' ').map((word) {
-        if (word.isEmpty) return word;
-        return word[0].toUpperCase() + word.substring(1);
-      }).join(' ');
+      return lower
+          .split(' ')
+          .map((word) =>
+              word.isEmpty ? word : word[0].toUpperCase() + word.substring(1))
+          .join(' ');
     }
     return '-';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Decisões')),
-      body: RefreshIndicator(
+    Widget bodyContent;
+    if (_logado == null) {
+      bodyContent = const Center(child: CircularProgressIndicator());
+    } else if (_logado!) {
+      bodyContent = RefreshIndicator(
         onRefresh: _reload,
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _decisoesFuture,
@@ -64,7 +80,6 @@ class _DecisoesScreenState extends State<DecisoesScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-
             if (snapshot.hasError) {
               return ListView(
                 children: const [
@@ -73,8 +88,7 @@ class _DecisoesScreenState extends State<DecisoesScreen> {
                 ],
               );
             }
-
-            final decisoes = snapshot.data ?? const [];
+            final decisoes = snapshot.data ?? <Map<String, dynamic>>[];
             if (decisoes.isEmpty) {
               return ListView(
                 children: const [
@@ -83,7 +97,6 @@ class _DecisoesScreenState extends State<DecisoesScreen> {
                 ],
               );
             }
-
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: decisoes.length,
@@ -92,8 +105,8 @@ class _DecisoesScreenState extends State<DecisoesScreen> {
                 final decisao = decisoes[index];
                 final titulo = (decisao['titulo'] as String?) ?? 'Sem título';
                 final status = _humanizeEnum(decisao['status']);
-                final responsavel = (decisao['responsavelNome'] as String?) ??
-                    'Sem responsável';
+                final responsavel =
+                    (decisao['responsavelNome'] as String?) ?? 'Não informado';
                 final prazo = _formatDate(decisao['prazo']);
                 final descricao = (decisao['descricao'] as String?) ?? '';
 
@@ -104,11 +117,13 @@ class _DecisoesScreenState extends State<DecisoesScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(titulo,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold)),
+                        Text(
+                          titulo,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
@@ -132,7 +147,20 @@ class _DecisoesScreenState extends State<DecisoesScreen> {
             );
           },
         ),
-      ),
-    );
+      );
+    } else {
+      bodyContent = const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'Para acessar as decisões, faça login no sistema.',
+            style: TextStyle(fontSize: 18, color: Colors.black54),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return BridgeFlowScaffold(body: bodyContent);
   }
 }

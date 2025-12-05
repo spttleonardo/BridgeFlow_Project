@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../theme.dart';
 import 'comunicados_screen.dart';
 import 'decisoes_screen.dart';
 import 'notificacoes_screen.dart';
+import '../services/auth_service.dart';
+import '../widgets/bridgeflow_scaffold.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -13,12 +14,24 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  bool? _logado;
   late Future<Map<String, dynamic>?> _statsFuture;
+  bool _intentHandled = false;
 
   @override
   void initState() {
     super.initState();
     _statsFuture = ApiService.fetchDashboardStats();
+    _checkLogin();
+  }
+
+  Future<void> _checkLogin() async {
+    await ApiService.restoreAuthFromStorage();
+    final autenticado = await AuthService.isLoggedIn();
+    if (!mounted) return;
+    setState(() {
+      _logado = autenticado;
+    });
   }
 
   Future<void> _reload() async {
@@ -40,28 +53,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final userName = ApiService.currentUser?['nome'] as String?;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        backgroundColor: bridgeFlowTheme.appBarTheme.backgroundColor,
-        actions: [
-          IconButton(
-            tooltip: 'Atualizar',
-            onPressed: _reload,
-            icon: const Icon(Icons.refresh),
-          ),
-          IconButton(
-            tooltip: 'Sair',
-            onPressed: () {
-              ApiService.clearAuth();
-              Navigator.pushNamedAndRemoveUntil(
-                  context, '/login', (_) => false);
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
+    _maybeHandleCreationIntent();
+    Widget bodyContent;
+    if (_logado == null) {
+      bodyContent = const Center(child: CircularProgressIndicator());
+    } else if (_logado == true) {
+      bodyContent = RefreshIndicator(
         onRefresh: _reload,
         child: FutureBuilder<Map<String, dynamic>?>(
           future: _statsFuture,
@@ -82,8 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 message: errorMessage,
                 onAction: () {
                   if (errorMessage.toLowerCase().contains('sessão expirada')) {
-                    Navigator.pushNamedAndRemoveUntil(
-                        context, '/login', (_) => false);
+                    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
                   } else {
                     _reload();
                   }
@@ -98,12 +94,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final notificacoesNaoLidas = _asInt(data['notificacoesNaoLidas']);
 
             final decisoesPorStatus =
-                (data['decisoesPorStatus'] as Map?)?.cast<String, dynamic>() ??
-                    {};
+                (data['decisoesPorStatus'] as Map?)?.cast<String, dynamic>() ?? {};
             final atividadesPorSecretaria =
-                (data['atividadesPorSecretaria'] as Map?)
-                        ?.cast<String, dynamic>() ??
-                    {};
+                (data['atividadesPorSecretaria'] as Map?)?.cast<String, dynamic>() ?? {};
 
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -123,12 +116,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _StatCard(
                         title: 'Comunicados',
                         value: totalComunicados,
-                        subtitle:
-                            '$comunicadosPendentes pendentes, $comunicadosLidos lidos',
+                        subtitle: '$comunicadosPendentes pendentes, $comunicadosLidos lidos',
                         onTap: () {
-                          Navigator.pushNamed(
-                                  context, ComunicadosScreen.routeName)
-                              .then((_) {
+                          Navigator.pushNamed(context, ComunicadosScreen.routeName).then((_) {
                             if (mounted) {
                               _reload();
                             }
@@ -137,11 +127,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _StatCard(
                         title: 'Decisões',
                         value: totalDecisoes,
-                        subtitle:
-                            '${decisoesPorStatus.length} status acompanhados',
+                        subtitle: '${decisoesPorStatus.length} status acompanhados',
                         onTap: () {
-                          Navigator.pushNamed(context, DecisoesScreen.routeName)
-                              .then((_) {
+                          Navigator.pushNamed(context, DecisoesScreen.routeName).then((_) {
                             if (mounted) {
                               _reload();
                             }
@@ -152,9 +140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         value: notificacoesNaoLidas,
                         subtitle: 'não lidas',
                         onTap: () {
-                          Navigator.pushNamed(
-                                  context, NotificacoesScreen.routeName)
-                              .then((_) {
+                          Navigator.pushNamed(context, NotificacoesScreen.routeName).then((_) {
                             if (mounted) {
                               _reload();
                             }
@@ -185,8 +171,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           },
         ),
-      ),
+      );
+    } else {
+      bodyContent = const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'Para acessar o dashboard, faça login no sistema.',
+            style: TextStyle(fontSize: 18, color: Colors.black54),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return BridgeFlowScaffold(
+      body: bodyContent,
     );
+  }
+
+  void _maybeHandleCreationIntent() {
+    if (_intentHandled != false) return;
+    final route = ModalRoute.of(context);
+    final args = route?.settings.arguments;
+    if (args is Map && args['create'] is String) {
+      _intentHandled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final what = (args['create'] as String).toLowerCase();
+        switch (what) {
+          case 'comunicado':
+            _openComunicadoDialog();
+            break;
+          case 'decisao':
+            _openDecisaoDialog();
+            break;
+          case 'notificacao':
+            _openNotificacaoDialog();
+            break;
+          default:
+            _intentHandled = false; // unknown, allow future intents
+        }
+      });
+    }
   }
 
   void _openCreationDialog(

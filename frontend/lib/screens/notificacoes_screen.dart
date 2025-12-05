@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../widgets/bridgeflow_scaffold.dart';
 
 class NotificacoesScreen extends StatefulWidget {
   static const routeName = '/notificacoes';
@@ -12,13 +14,24 @@ class NotificacoesScreen extends StatefulWidget {
 }
 
 class _NotificacoesScreenState extends State<NotificacoesScreen> {
+  bool? _logado;
   late Future<List<Map<String, dynamic>>> _notificacoesFuture;
   bool _apenasNaoLidas = false;
 
   @override
   void initState() {
     super.initState();
+    _verificarLogin();
     _notificacoesFuture = ApiService.fetchNotificacoes();
+  }
+
+  Future<void> _verificarLogin() async {
+    await ApiService.restoreAuthFromStorage();
+    final autenticado = await AuthService.isLoggedIn();
+    if (!mounted) return;
+    setState(() {
+      _logado = autenticado;
+    });
   }
 
   Future<void> _reload() async {
@@ -48,19 +61,22 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
   String _humanizeEnum(dynamic value) {
     if (value is String && value.isNotEmpty) {
       final lower = value.toLowerCase().replaceAll('_', ' ');
-      return lower.split(' ').map((word) {
-        if (word.isEmpty) return word;
-        return word[0].toUpperCase() + word.substring(1);
-      }).join(' ');
+      return lower
+          .split(' ')
+          .map((word) =>
+              word.isEmpty ? word : word[0].toUpperCase() + word.substring(1))
+          .join(' ');
     }
     return '-';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Notificações')),
-      body: RefreshIndicator(
+    Widget bodyContent;
+    if (_logado == null) {
+      bodyContent = const Center(child: CircularProgressIndicator());
+    } else if (_logado!) {
+      bodyContent = RefreshIndicator(
         onRefresh: _reload,
         child: Column(
           children: [
@@ -82,7 +98,6 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
                   if (snapshot.hasError) {
                     return ListView(
                       children: const [
@@ -91,8 +106,7 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
                       ],
                     );
                   }
-
-                  final notificacoes = snapshot.data ?? const [];
+                  final notificacoes = snapshot.data ?? <Map<String, dynamic>>[];
                   if (notificacoes.isEmpty) {
                     return ListView(
                       children: const [
@@ -101,17 +115,14 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
                       ],
                     );
                   }
-
                   return ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: notificacoes.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final notificacao = notificacoes[index];
-                      final titulo =
-                          (notificacao['titulo'] as String?) ?? 'Sem título';
-                      final mensagem =
-                          (notificacao['mensagem'] as String?) ?? '';
+                      final titulo = (notificacao['titulo'] as String?) ?? 'Sem título';
+                      final mensagem = (notificacao['mensagem'] as String?) ?? '';
                       final tipo = _humanizeEnum(notificacao['tipo']);
                       final data = _formatDate(notificacao['dataCriacao']);
                       final lida = notificacao['lida'] == true;
@@ -123,11 +134,13 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(titulo,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.bold)),
+                              Text(
+                                titulo,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 8,
@@ -154,7 +167,20 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
             ),
           ],
         ),
-      ),
-    );
+      );
+    } else {
+      bodyContent = const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'Para acessar as notificações, faça login no sistema.',
+            style: TextStyle(fontSize: 18, color: Colors.black54),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return BridgeFlowScaffold(body: bodyContent);
   }
 }

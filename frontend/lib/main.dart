@@ -6,6 +6,8 @@ import 'screens/dashboard_screen.dart';
 import 'screens/comunicados_screen.dart';
 import 'screens/decisoes_screen.dart';
 import 'screens/notificacoes_screen.dart';
+import 'screens/contato_screen.dart';
+import 'screens/servicos_screen.dart';
 import 'theme.dart';
 
 void main() {
@@ -30,6 +32,8 @@ class BridgeFlowApp extends StatelessWidget {
         ComunicadosScreen.routeName: (context) => const ComunicadosScreen(),
         DecisoesScreen.routeName: (context) => const DecisoesScreen(),
         NotificacoesScreen.routeName: (context) => const NotificacoesScreen(),
+        '/contato': (context) => const ContatoScreen(),
+        '/servicos': (context) => const ServicosScreen(),
         // Para navegação programática, use Navigator.push com MaterialPageRoute
       },
     );

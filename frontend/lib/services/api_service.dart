@@ -1,5 +1,8 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+
+import 'auth_service.dart';
 
 class ApiService {
   static String? _authToken;
@@ -8,11 +11,13 @@ class ApiService {
 
   static const String baseUrl = 'http://localhost:8080';
 
-  static void _cacheAuthData(Map<String, dynamic> data) {
+  static Future<void> _cacheAuthData(Map<String, dynamic> data) async {
     final token = data['token'];
     if (token is String && token.isNotEmpty) {
       _authToken = token;
       _tokenType = (data['tipo'] as String?) ?? 'Bearer';
+      // Salva token de forma segura
+      await AuthService.saveToken(token);
     }
     final usuario = data['usuario'];
     if (usuario is Map<String, dynamic>) {
@@ -20,10 +25,20 @@ class ApiService {
     }
   }
 
-  static void clearAuth() {
+  static Future<void> clearAuth() async {
     _authToken = null;
     _tokenType = null;
     currentUser = null;
+    await AuthService.clearToken();
+  }
+
+  static Future<void> restoreAuthFromStorage() async {
+    if (_authToken != null) return;
+    final token = await AuthService.getToken();
+    if (token != null && token.isNotEmpty) {
+      _authToken = token;
+      _tokenType ??= 'Bearer';
+    }
   }
 
   static Map<String, String> _authHeaders() {
@@ -41,7 +56,7 @@ class ApiService {
     if (response.statusCode == 200) {
       try {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        _cacheAuthData(data);
+        await _cacheAuthData(data);
         return data;
       } catch (_) {
         return {'error': 'Erro ao processar resposta do servidor'};
@@ -70,7 +85,7 @@ class ApiService {
     if (response.statusCode == 200) {
       try {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        _cacheAuthData(data);
+        await _cacheAuthData(data);
         return data;
       } catch (_) {
         return {'error': 'Erro ao processar resposta do servidor'};
@@ -81,7 +96,7 @@ class ApiService {
             response.body.isNotEmpty ? response.body : 'E-mail não verificado'
       };
     } else if (response.statusCode == 401) {
-      clearAuth();
+      await clearAuth();
       return {'error': 'Login não autorizado'};
     } else {
       if (response.body.isNotEmpty) {
